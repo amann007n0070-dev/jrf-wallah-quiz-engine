@@ -63,6 +63,13 @@ export default {
 
       const id = env.QUIZ_ENGINE.idFromName("jrf-wallah-main");
       const stub = env.QUIZ_ENGINE.get(id);
+      if (path === "/admin/questions-check" && request.method === "GET") {
+  const result = await stub.fetch("https://quiz.internal/questions-check");
+  return new Response(result.body, {
+    status: result.status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
 
       if (path === "/admin/set-webhook" && request.method === "POST") {
         const result = await tg(env, "setWebhook", {
@@ -191,6 +198,21 @@ export class QuizEngine extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/questions-check" && request.method === "GET") {
+  try {
+    const questions = await this.getQuestions();
+    return reply({
+      ok: true,
+      questionCount: questions.length,
+      message: "Question bank validated; no quiz started."
+    });
+  } catch (error) {
+    return reply({
+      ok: false,
+      error: clean(error.message)
+    }, 502);
+  }
+}
 
     if (url.pathname === "/schedule" && request.method === "POST") {
       const current = await this.getState();
