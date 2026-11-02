@@ -55,15 +55,16 @@ export default {
     }
 
     if (path.startsWith("/admin/")) {
-      if (!env.QUIZ_API_SECRET ||
-          url.searchParams.get("key") !== env.QUIZ_API_SECRET) {
-        return reply({ ok: false, error: "Unauthorized" }, 401);
-      }
+  const auth = request.headers.get("Authorization") || "";
+  if (!env.QUIZ_API_SECRET ||
+      auth !== `Bearer ${env.QUIZ_API_SECRET}`) {
+    return reply({ ok: false, error: "Unauthorized" }, 401);
+  }
 
       const id = env.QUIZ_ENGINE.idFromName("jrf-wallah-main");
       const stub = env.QUIZ_ENGINE.get(id);
 
-      if (path === "/admin/set-webhook" && request.method === "GET") {
+      if (path === "/admin/set-webhook" && request.method === "POST") {
         const result = await tg(env, "setWebhook", {
           url: `${url.origin}/telegram-webhook`,
           secret_token: env.TELEGRAM_WEBHOOK_SECRET,
@@ -73,11 +74,11 @@ export default {
         return reply({ ok: true, webhook: result });
       }
 
-      if (path === "/admin/schedule" && request.method === "GET") {
-        const startAt = url.searchParams.get("startAt");
-        const title = url.searchParams.get("title") || "JRF WALLAH Soil Science Test";
-        const topics = url.searchParams.get("topics") || "ICAR JRF Soil Science";
-
+      if (path === "/admin/schedule" && request.method === "POST") {
+      const body = await request.json();
+      const startAt = body.startAt;
+      const title = body.title || "JRF WALLAH Soil Science Test";
+      const topics = body.topics || "ICAR JRF Soil Science";
         if (!startAt || !Number.isFinite(Date.parse(startAt))) {
           return reply({ ok: false, error: "Invalid startAt date" }, 400);
         }
