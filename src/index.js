@@ -164,7 +164,7 @@ export default {
     }, { status: 500 });
   }
 }
-            if (path === "/admin/webhook-info" && request.method === "GET") {
+           if (path === "/admin/webhook-info" && request.method === "GET") {
         const result = await tg(env, "getWebhookInfo", {});
         return reply({
           ok: true,
@@ -172,9 +172,21 @@ export default {
           pendingUpdates: result.pending_update_count
         });
       }
+
+      if (path === "/admin/restore-production-webhook" && request.method === "POST") {
+        const result = await tg(env, "setWebhook", {
+          url: "https://jrf-wallah-telegram.amann007n0070.workers.dev/",
+          secret_token: env.TELEGRAM_WEBHOOK_SECRET,
+          allowed_updates: ["poll_answer"],
+          drop_pending_updates: false
+        });
+
+        return reply({ ok: true, restored: true, webhook: result });
+      }
+
       if (path === "/admin/status" && request.method === "GET") {
         return stub.fetch("https://quiz.internal/status");
-      }
+      }       
 
       if (path === "/admin/cancel" && request.method === "POST") {
         return stub.fetch("https://quiz.internal/cancel", { method: "POST" });
