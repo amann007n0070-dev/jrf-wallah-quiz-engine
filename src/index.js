@@ -101,7 +101,69 @@ export default {
           headers: { "Content-Type": "application/json" }
         });
       }
+      if (path === "/admin/telegram-check" && request.method === "GET") {
+  try {
+    const token = env.BOT_TOKEN;
+    const chatId = env.GROUP_CHAT_ID;
 
+    if (!token || !chatId) {
+      return Response.json({
+        ok: false,
+        error: "BOT_TOKEN or GROUP_CHAT_ID is missing"
+      }, { status: 500 });
+    }
+
+    const base = `https://api.telegram.org/bot${token}`;
+
+    const meResponse = await fetch(`${base}/getMe`);
+    const me = await meResponse.json();
+
+    if (!me.ok) {
+      return Response.json({
+        ok: false,
+        step: "getMe",
+        error: me.description
+      }, { status: 502 });
+    }
+
+    const chatResponse = await fetch(
+      `${base}/getChat?chat_id=${encodeURIComponent(chatId)}`
+    );
+    const chat = await chatResponse.json();
+
+    if (!chat.ok) {
+      return Response.json({
+        ok: false,
+        step: "getChat",
+        error: chat.description
+      }, { status: 502 });
+    }
+
+    const memberResponse = await fetch(
+      `${base}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${me.result.id}`
+    );
+    const member = await memberResponse.json();
+
+    return Response.json({
+      ok: me.ok && chat.ok && member.ok,
+      bot: {
+        username: me.result.username
+      },
+      group: {
+        title: chat.result.title,
+        type: chat.result.type
+      },
+      membership: member.ok
+        ? { status: member.result.status }
+        : { error: member.description }
+    });
+  } catch (error) {
+    return Response.json({
+      ok: false,
+      error: String(error.message)
+    }, { status: 500 });
+  }
+}
       if (path === "/admin/status" && request.method === "GET") {
         return stub.fetch("https://quiz.internal/status");
       }
