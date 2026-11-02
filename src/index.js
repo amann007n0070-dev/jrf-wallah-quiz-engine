@@ -164,6 +164,14 @@ export default {
     }, { status: 500 });
   }
 }
+            if (path === "/admin/webhook-info" && request.method === "GET") {
+        const result = await tg(env, "getWebhookInfo", {});
+        return reply({
+          ok: true,
+          webhookUrl: result.url,
+          pendingUpdates: result.pending_update_count
+        });
+      }
       if (path === "/admin/status" && request.method === "GET") {
         return stub.fetch("https://quiz.internal/status");
       }
