@@ -1,0 +1,19 @@
+{
+  "name": "jrf-wallah-quiz-engine",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-02",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "QUIZ_ENGINE",
+        "class_name": "QuizEngine"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["QuizEngine"]
+    }
+  ]
+}
