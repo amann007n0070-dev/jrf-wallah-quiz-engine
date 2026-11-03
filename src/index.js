@@ -437,13 +437,14 @@ export class QuizEngine extends DurableObject {
         }).format(new Date(state.startAt));
 
         await this.sendGroupMessage(
-          `📢 JRF WALLAH TEST ALERT\n\n` +
-          `${state.title}\n` +
-          `Start: ${startTime} IST\n` +
-          `Questions: 50\n` +
-          `Time: 30 seconds per question\n\n` +
-          `Topics: ${state.topics}\n\n` +
-          `Be ready!`
+          `🚨📚 JRF WALLAH | TEST ALERT 📚🚨\n\n` +
+          `🎯 ${state.title}\n\n` +
+          `⏰ Start Time: ${startTime} IST\n` +
+          `📝 Total Questions: 50\n` +
+          `⏱️ Time: 30 seconds per question\n\n` +
+          `📖 Topics Covered:\n${state.topics}\n\n` +
+          `🔥 Be ready! The test starts in 5 minutes.\n` +
+          `💪 Give it your best shot. All the best!`
         );
 
         state.notified = true;
