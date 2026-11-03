@@ -187,7 +187,10 @@ export default {
       if (path === "/admin/status" && request.method === "GET") {
         return stub.fetch("https://quiz.internal/status");
       }       
-
+       if (path === "/admin/reset" && request.method === "POST") {
+  return stub.fetch("https://quiz.internal/reset", { method: "POST" });
+}
+      
       if (path === "/admin/cancel" && request.method === "POST") {
         return stub.fetch("https://quiz.internal/cancel", { method: "POST" });
       }
@@ -391,6 +394,20 @@ export class QuizEngine extends DurableObject {
       });
     }
 
+    if (url.pathname === "/reset" && request.method === "POST") {
+  const state = await this.getState();
+
+  if (state && !["finished", "cancelled"].includes(state.status)) {
+    return reply({
+      ok: false,
+      error: "Reset blocked: quiz is not finished or cancelled"
+    }, 409);
+  }
+
+  await this.ctx.storage.deleteAlarm();
+  await this.ctx.storage.delete("quizState");
+  return reply({ ok: true, status: "idle", reset: true });
+}
     if (url.pathname === "/cancel" && request.method === "POST") {
       const state = await this.getState();
 
