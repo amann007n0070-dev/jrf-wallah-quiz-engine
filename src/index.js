@@ -571,4 +571,4 @@ export class QuizEngine extends DurableObject {
       await this.sendGroupMessage(part);
     }
   }
-
+}
