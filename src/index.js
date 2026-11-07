@@ -490,7 +490,7 @@ export class QuizEngine extends DurableObject {
 
       const message = clean(error.message);
 
-      if (message.includes("poll options length must not exceed 100")) {
+      if (message.toLowerCase().includes("poll options length")) {
         state.status = "error";
         await this.putState(state);
         await this.ctx.storage.deleteAlarm();
