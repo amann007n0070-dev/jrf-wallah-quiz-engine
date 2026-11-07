@@ -242,9 +242,19 @@ export class QuizEngine extends DurableObject {
         throw new Error(`Invalid question ${i + 1}`);
       }
 
+            const options = q.options.map(String);
+
+      const longOption = options.findIndex(option => option.length > 100);
+
+      if (longOption !== -1) {
+        throw new Error(
+          `Question ${i + 1}, option ${longOption + 1} exceeds Telegram's 100-character limit (${options[longOption].length} characters)`
+        );
+      }
+
       return {
         question: q.question,
-        options: q.options.map(String),
+        options,
         answer: q.answer
       };
     });
@@ -475,11 +485,25 @@ export class QuizEngine extends DurableObject {
         await this.ctx.storage.deleteAlarm();
         await this.publishLeaderboard(state);
       }
-    } catch (error) {
+        } catch (error) {
       console.error("Quiz alarm error:", error.message);
 
+      const message = clean(error.message);
+
+      if (message.includes("poll options length must not exceed 100")) {
+        state.status = "error";
+        await this.putState(state);
+        await this.ctx.storage.deleteAlarm();
+
+        await this.sendGroupMessage(
+          "⚠️ Quiz stopped: one answer option exceeds Telegram's 100-character limit. Please correct the question bank before restarting."
+        ).catch(() => null);
+
+        return;
+      }
+
       await this.sendGroupMessage(
-        "⚠️ Quiz engine error: " + clean(error.message)
+        "⚠️ Quiz engine error: " + message
       ).catch(() => null);
 
       await this.ctx.storage.setAlarm(Date.now() + 10000);
