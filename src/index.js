@@ -486,31 +486,89 @@ export class QuizEngine extends DurableObject {
     }
   }
 
-  async publishLeaderboard(state) {
-    const users = Object.values(state.users).map(user => {
-      let score = 0;
 
-      for (const [index, selected] of Object.entries(user.answers)) {
-        if (selected !== null &&
-            selected === state.questions[Number(index)]?.answer) {
-          score++;
+  
+  async publishLeaderboard(state) {
+    const total = state.questions.length;
+
+    const users = Object.values(state.users || {}).map(user => {
+      let correct = 0;
+      let wrong = 0;
+      let answered = 0;
+
+      for (let i = 0; i < total; i++) {
+        const selected = user.answers?.[i];
+
+        if (selected === null || selected === undefined) {
+          continue;
+        }
+
+        answered++;
+
+        if (selected === state.questions[i]?.answer) {
+          correct++;
+        } else {
+          wrong++;
         }
       }
 
-      return { name: user.name, score };
+      const unanswered = total - answered;
+
+      return {
+        name: user.name || "Unknown",
+        correct,
+        wrong,
+        unanswered,
+        total,
+        percentage: (correct / total * 100).toFixed(2)
+      };
     });
 
-    users.sort((a, b) => b.score - a.score);
-
-    const lines = users.slice(0, 10).map((user, index) =>
-      `${index + 1}. ${user.name} — ${user.score}/50`
+    // Highest correct answers first
+    users.sort((a, b) =>
+      b.correct - a.correct ||
+      a.wrong - b.wrong ||
+      a.name.localeCompare(b.name)
     );
 
-    await this.sendGroupMessage(
+    if (!users.length) {
+      await this.sendGroupMessage(
+        `🏁 ${state.title} COMPLETED!\n\nNo student responses were recorded.`
+      );
+      return;
+    }
+
+    const header =
       `🏁 ${state.title} COMPLETED!\n\n` +
-      `Participants: ${users.length}\n\n` +
-      `🏆 LEADERBOARD\n` +
-      (lines.length ? lines.join("\n") : "No answers received.")
-    );
+      `📊 FINAL RESULT & LEADERBOARD\n` +
+      `Total Questions: ${total}\n` +
+      `Total Participants: ${users.length}\n\n`;
+
+    const messages = [];
+    let message = header;
+
+    users.forEach((user, index) => {
+      const entry =
+        `${index + 1}. ${user.name}\n` +
+        `✅ Correct: ${user.correct}\n` +
+        `❌ Wrong: ${user.wrong}\n` +
+        `➖ Unanswered: ${user.unanswered}\n` +
+        `🎯 Score: ${user.correct}/${user.total} (${user.percentage}%)\n\n`;
+
+      if (message.length + entry.length > 3500) {
+        messages.push(message);
+        message = `🏆 ${state.title} RESULT (Continued)\n\n`;
+      }
+
+      message += entry;
+    });
+
+    if (message.length) {
+      messages.push(message);
+    }
+
+    for (const part of messages) {
+      await this.sendGroupMessage(part);
+    }
   }
-}
+
