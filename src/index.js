@@ -217,17 +217,23 @@ export class QuizEngine extends DurableObject {
     await this.ctx.storage.put("quizState", state);
   }
 
+  
   async getQuestions() {
     const url = new URL(this.env.QUESTION_API_URL);
     url.searchParams.set("key", this.env.QUIZ_API_SECRET);
 
     const response = await fetch(url.toString(), { redirect: "follow" });
-    if (!response.ok) throw new Error(`Question API HTTP ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Question API HTTP ${response.status}`);
+    }
 
     const data = await response.json();
 
-    if (!data.ok || !Array.isArray(data.questions) ||
-        data.questions.length !== 50) {
+    if (
+      !data.ok ||
+      !Array.isArray(data.questions) ||
+      data.questions.length !== 50
+    ) {
       throw new Error(data.error || "Question API must return 50 questions");
     }
 
@@ -237,28 +243,23 @@ export class QuizEngine extends DurableObject {
         !Array.isArray(q.options) ||
         q.options.length !== 4 ||
         !Number.isInteger(q.answer) ||
-        q.answer < 0 || q.answer > 3
+        q.answer < 0 ||
+        q.answer > 3
       ) {
         throw new Error(`Invalid question ${i + 1}`);
       }
 
-            const options = q.options.map(option =>
-  String(option).normalize("NFC").trim()
-);
+      const options = q.options.map(option =>
+        String(option).normalize("NFC").trim()
+      );
 
-const invalidOption = options.findIndex(
-  option => option.length === 0 || option.length > 100
-);
+      const invalidOption = options.findIndex(
+        option => [...option].length === 0 || [...option].length > 80
+      );
 
-if (invalidOption !== -1) {
-  throw new Error(
-    `Question ${i + 1}, option ${invalidOption + 1}: invalid length (${options[invalidOption].length})`
-  );
-}
-
-      if (longOption !== -1) {
+      if (invalidOption !== -1) {
         throw new Error(
-          `Question ${i + 1}, option ${longOption + 1} exceeds Telegram's 100-character limit (${options[longOption].length} characters)`
+          `Question ${i + 1}, option ${invalidOption + 1} is too long or empty`
         );
       }
 
@@ -269,6 +270,7 @@ if (invalidOption !== -1) {
       };
     });
   }
+
 
   async sendGroupMessage(text) {
     return tg(this.env, "sendMessage", {
