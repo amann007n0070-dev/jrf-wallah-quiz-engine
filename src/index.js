@@ -242,9 +242,19 @@ export class QuizEngine extends DurableObject {
         throw new Error(`Invalid question ${i + 1}`);
       }
 
-            const options = q.options.map(String);
+            const options = q.options.map(option =>
+  String(option).normalize("NFC").trim()
+);
 
-      const longOption = options.findIndex(option => option.length > 100);
+const invalidOption = options.findIndex(
+  option => option.length === 0 || option.length > 100
+);
+
+if (invalidOption !== -1) {
+  throw new Error(
+    `Question ${i + 1}, option ${invalidOption + 1}: invalid length (${options[invalidOption].length})`
+  );
+}
 
       if (longOption !== -1) {
         throw new Error(
@@ -269,6 +279,15 @@ export class QuizEngine extends DurableObject {
 
   async sendQuestion(state, index) {
     const q = state.questions[index];
+    for (let i = 0; i < q.options.length; i++) {
+  const option = String(q.options[i]).normalize("NFC").trim();
+
+  if (!option || option.length > 100) {
+    throw new Error(
+      `Question ${index + 1}, option ${i + 1} invalid: ${option.length} characters`
+    );
+  }
+}
 
     const message = await tg(this.env, "sendPoll", {
       chat_id: this.env.GROUP_CHAT_ID,
