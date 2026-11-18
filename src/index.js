@@ -272,11 +272,16 @@ export class QuizEngine extends DurableObject {
   }
 
 
+  
   async sendGroupMessage(text) {
     return tg(this.env, "sendMessage", {
       chat_id: this.env.GROUP_CHAT_ID,
+      text
+    });
+  }
 
   async sendQuestion(state, index) {
+
     const q = state.questions[index];
     for (let i = 0; i < q.options.length; i++) {
   const option = String(q.options[i]).normalize("NFC").trim();
