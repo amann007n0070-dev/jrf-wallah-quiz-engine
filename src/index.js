@@ -535,6 +535,7 @@ export class QuizEngine extends DurableObject {
 
 
   
+  
   async publishLeaderboard(state) {
     const total = state.questions.length;
 
@@ -546,9 +547,7 @@ export class QuizEngine extends DurableObject {
       for (let i = 0; i < total; i++) {
         const selected = user.answers?.[i];
 
-        if (selected === null || selected === undefined) {
-          continue;
-        }
+        if (selected === null || selected === undefined) continue;
 
         answered++;
 
@@ -560,6 +559,9 @@ export class QuizEngine extends DurableObject {
       }
 
       const unanswered = total - answered;
+      const positiveMarks = correct * 4;
+      const negativeMarks = wrong;
+      const score = positiveMarks - negativeMarks;
 
       return {
         name: user.name || "Unknown",
@@ -567,12 +569,15 @@ export class QuizEngine extends DurableObject {
         wrong,
         unanswered,
         total,
-        percentage: (correct / total * 100).toFixed(2)
+        positiveMarks,
+        negativeMarks,
+        score,
+        maxScore: total * 4
       };
     });
 
-    // Highest correct answers first
     users.sort((a, b) =>
+      b.score - a.score ||
       b.correct - a.correct ||
       a.wrong - b.wrong ||
       a.name.localeCompare(b.name)
@@ -586,10 +591,12 @@ export class QuizEngine extends DurableObject {
     }
 
     const header =
-      `🏁 ${state.title} COMPLETED!\n\n` +
-      `📊 FINAL RESULT & LEADERBOARD\n` +
-      `Total Questions: ${total}\n` +
-      `Total Participants: ${users.length}\n\n`;
+      `🏆 JRF WALLAH | FINAL RESULT 🏆\n` +
+      `📚 ${state.title}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `📝 Total Questions: ${total}\n` +
+      `👥 Total Participants: ${users.length}\n` +
+      `📊 Marking: +4 correct | −1 wrong | 0 unanswered\n\n`;
 
     const messages = [];
     let message = header;
@@ -597,10 +604,10 @@ export class QuizEngine extends DurableObject {
     users.forEach((user, index) => {
       const entry =
         `${index + 1}. ${user.name}\n` +
-        `✅ Correct: ${user.correct}\n` +
-        `❌ Wrong: ${user.wrong}\n` +
+        `🎯 Score: ${user.score} / ${user.maxScore}\n` +
+        `✅ Correct: ${user.correct} | ❌ Wrong: ${user.wrong}\n` +
         `➖ Unanswered: ${user.unanswered}\n` +
-        `🎯 Score: ${user.correct}/${user.total} (${user.percentage}%)\n\n`;
+        `➕ Marks: +${user.positiveMarks} | ➖ Negative: −${user.negativeMarks}\n\n`;
 
       if (message.length + entry.length > 3500) {
         messages.push(message);
@@ -610,9 +617,7 @@ export class QuizEngine extends DurableObject {
       message += entry;
     });
 
-    if (message.length) {
-      messages.push(message);
-    }
+    if (message.length) messages.push(message);
 
     for (const part of messages) {
       await this.sendGroupMessage(part);
