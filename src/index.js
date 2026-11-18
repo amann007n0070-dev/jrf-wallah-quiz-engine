@@ -275,9 +275,6 @@ export class QuizEngine extends DurableObject {
   async sendGroupMessage(text) {
     return tg(this.env, "sendMessage", {
       chat_id: this.env.GROUP_CHAT_ID,
-      text
-    });
-  }
 
   async sendQuestion(state, index) {
     const q = state.questions[index];
