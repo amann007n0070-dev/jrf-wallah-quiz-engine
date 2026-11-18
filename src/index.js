@@ -543,6 +543,7 @@ export class QuizEngine extends DurableObject {
 
   
   
+  
   async publishLeaderboard(state) {
     const total = state.questions.length;
 
@@ -597,6 +598,24 @@ export class QuizEngine extends DurableObject {
       return;
     }
 
+    const champion = users[0];
+
+    await this.sendGroupMessage(
+      `🏆🌟 JRF WALLAH CHAMPION 🌟🏆\n` +
+      `━━━━━━━━━━━━━━━━━━\n\n` +
+      `🥇 CHAMPION OF THE TEST\n\n` +
+      `👑 ${champion.name}\n\n` +
+      `🏅 RANK: 1st\n` +
+      `📚 ${state.title}\n` +
+      `🎯 FINAL SCORE: ${champion.score} / ${champion.maxScore}\n` +
+      `✅ Correct: ${champion.correct}\n` +
+      `❌ Wrong: ${champion.wrong}\n` +
+      `➖ Unanswered: ${champion.unanswered}\n\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `🎉 CONGRATULATIONS, CHAMPION!\n` +
+      `💚 JRF WALLAH FAMILY IS PROUD OF YOU!`
+    );
+
     const header =
       `🏆 JRF WALLAH | FINAL RESULT 🏆\n` +
       `📚 ${state.title}\n` +
@@ -610,7 +629,8 @@ export class QuizEngine extends DurableObject {
 
     users.forEach((user, index) => {
       const entry =
-        `${index + 1}. ${user.name}\n` +
+        `${index === 0 ? "🥇 1st RANK | CHAMPION" : `${index + 1}. RANK`}\n` +
+        `👤 ${user.name}\n` +
         `🎯 Score: ${user.score} / ${user.maxScore}\n` +
         `✅ Correct: ${user.correct} | ❌ Wrong: ${user.wrong}\n` +
         `➖ Unanswered: ${user.unanswered}\n` +
