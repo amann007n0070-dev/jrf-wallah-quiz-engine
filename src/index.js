@@ -469,16 +469,23 @@ export class QuizEngine extends DurableObject {
           timeStyle: "short"
         }).format(new Date(state.startAt));
 
+        
         await this.sendGroupMessage(
-          `🚨📚 JRF WALLAH | TEST ALERT 📚🚨\n\n` +
+          `🌿 JRF WALLAH 🌿\n` +
+          `━━━━━━━━━━━━━━━━━━\n` +
+          `🏆 SOIL SCIENCE | GRAND TEST ALERT\n\n` +
           `🎯 ${state.title}\n\n` +
-          `⏰ Start Time: ${startTime} IST\n` +
-          `📝 Total Questions: 50\n` +
-          `⏱️ Time: 30 seconds per question\n\n` +
-          `📖 Topics Covered:\n${state.topics}\n\n` +
-          `🔥 Be ready! The test starts in 5 minutes.\n` +
-          `💪 Give it your best shot. All the best!`
+          `📅 Start Time: ${startTime} IST\n` +
+          `📝 Total Questions: ${state.questions.length}\n` +
+          `⏱️ Time: 30 seconds per question\n` +
+          `📊 Marking: +4 Correct | -1 Wrong | 0 Unanswered\n\n` +
+          `📚 TOPICS COVERED\n${state.topics}\n\n` +
+          `━━━━━━━━━━━━━━━━━━\n` +
+          `⏳ TEST STARTS IN 5 MINUTES!\n` +
+          `🔥 Get ready. Give your best!\n` +
+          `💪 ALL THE BEST, JRF WALLAH FAMILY!`
         );
+
 
         state.notified = true;
         await this.putState(state);
