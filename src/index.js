@@ -248,7 +248,13 @@ export class QuizEngine extends DurableObject {
       ) {
         throw new Error(`Invalid question ${i + 1}`);
       }
+             const questionLength = [...q.question].length;
 
+      if (questionLength < 1 || questionLength > 300) {
+        throw new Error(
+          `Question ${i + 1} exceeds Telegram's 300-character limit (${questionLength} characters)`
+        );
+      }
       const options = q.options.map(option =>
         String(option).normalize("NFC").trim()
       );
