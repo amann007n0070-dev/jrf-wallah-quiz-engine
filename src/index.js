@@ -459,15 +459,16 @@ export class QuizEngine extends DurableObject {
         });
 
         sessions[userId] = {
-          status: "running",
-          quizId: quiz.id,
-          title: quiz.title,
-          questions: quiz.questions,
-          currentIndex: 0,
-          correct: 0,
-          wrong: 0,
-          unanswered: 0
-        };
+  status: "running",
+  quizId: quiz.id,
+  title: quiz.title,
+  questions: quiz.questions,
+  currentIndex: 0,
+  currentPollId: poll.poll.id,
+  correct: 0,
+  wrong: 0,
+  unanswered: 0
+};
 
         const practicePollMap =
           (await this.ctx.storage.get("practicePollMap")) || {};
