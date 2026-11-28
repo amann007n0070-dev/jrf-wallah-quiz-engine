@@ -414,6 +414,71 @@ export class QuizEngine extends DurableObject {
             "📚 Available quizzes देखने के लिए /practice भेजें।"
         });
       }
+      
+      const practiceMatch = command.match(/^\/practice(?:@\w+)?\s+(\d+)$/);
+
+      if (practiceMatch) {
+        if (message.chat?.type !== "private" || !message.from?.id) {
+          return reply({ ok: true, ignored: true });
+        }
+
+        const quizNumber = Number(practiceMatch[1]);
+        const quizzes =
+          (await this.ctx.storage.get("completedQuizzes")) || [];
+        const quiz = quizzes[quizNumber - 1];
+
+        if (!quiz || !Array.isArray(quiz.questions) || !quiz.questions.length) {
+          await tg(this.env, "sendMessage", {
+            chat_id: chatId,
+            text: "This quiz is not available. Send /practice to view the quiz list."
+          });
+          return reply({ ok: true });
+        }
+
+        const userId = String(message.from.id);
+        const sessions =
+          (await this.ctx.storage.get("practiceSessions")) || {};
+
+        if (sessions[userId]?.status === "running") {
+          await tg(this.env, "sendMessage", {
+            chat_id: chatId,
+            text: "You already have an active practice quiz. Complete it first."
+          });
+          return reply({ ok: true });
+        }
+
+        const q = quiz.questions[0];
+
+        const poll = await tg(this.env, "sendPoll", {
+          chat_id: chatId,
+          question: `📚 ${quiz.title}\nQ1/${quiz.questions.length}\n\n${q.question}`,
+          options: q.options.map(text => ({ text })),
+          type: "quiz",
+          correct_option_id: q.answer,
+          is_anonymous: false
+        });
+
+        sessions[userId] = {
+          status: "running",
+          quizId: quiz.id,
+          title: quiz.title,
+          questions: quiz.questions,
+          currentIndex: 0,
+          correct: 0,
+          wrong: 0,
+          unanswered: 0
+        };
+
+        const practicePollMap =
+          (await this.ctx.storage.get("practicePollMap")) || {};
+
+        practicePollMap[poll.poll.id] = userId;
+
+        await this.ctx.storage.put("practiceSessions", sessions);
+        await this.ctx.storage.put("practicePollMap", practicePollMap);
+
+        return reply({ ok: true, practiceStarted: true });
+      }
 
       if (command === "/practice") {
         const quizzes =
