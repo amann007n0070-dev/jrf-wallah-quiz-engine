@@ -40,14 +40,22 @@ export default {
 
       const update = await request.json();
 
-      if (update.poll_answer) {
-        const id = env.QUIZ_ENGINE.idFromName("jrf-wallah-main");
-        const stub = env.QUIZ_ENGINE.get(id);
+            const id = env.QUIZ_ENGINE.idFromName("jrf-wallah-main");
+      const stub = env.QUIZ_ENGINE.get(id);
 
+      if (update.poll_answer) {
         await stub.fetch("https://quiz.internal/answer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(update.poll_answer)
+        });
+      }
+
+      if (update.message) {
+        await stub.fetch("https://quiz.internal/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(update.message)
         });
       }
 
