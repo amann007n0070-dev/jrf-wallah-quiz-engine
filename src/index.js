@@ -504,6 +504,97 @@ export class QuizEngine extends DurableObject {
     
     if (url.pathname === "/answer" && request.method === "POST") {
       const answer = await request.json();
+      
+      const practicePollMap =
+        (await this.ctx.storage.get("practicePollMap")) || {};
+
+      const practiceUserId = practicePollMap[answer.poll_id];
+
+      if (practiceUserId) {
+        const sessions =
+          (await this.ctx.storage.get("practiceSessions")) || {};
+        const session = sessions[practiceUserId];
+
+        if (
+          !session ||
+          session.status !== "running" ||
+          session.currentPollId !== answer.poll_id ||
+          !Array.isArray(answer.option_ids) ||
+          answer.option_ids.length === 0
+        ) {
+          return reply({ ok: true, ignored: true });
+        }
+
+        const currentIndex = session.currentIndex;
+        const currentQuestion = session.questions[currentIndex];
+
+        if (!session.answers) session.answers = {};
+
+        session.answers[currentIndex] = answer.option_ids[0];
+        delete practicePollMap[answer.poll_id];
+
+        const recordedAnswers = Object.entries(session.answers);
+        session.correct = recordedAnswers.filter(
+          ([index, selected]) =>
+            selected === session.questions[Number(index)].answer
+        ).length;
+
+        session.wrong = recordedAnswers.length - session.correct;
+
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex < session.questions.length) {
+          const nextQuestion = session.questions[nextIndex];
+
+          const nextPoll = await tg(this.env, "sendPoll", {
+            chat_id: practiceUserId,
+            question: nextQuestion.question,
+            options: nextQuestion.options.map(text => ({ text })),
+            type: "quiz",
+            correct_option_id: nextQuestion.answer,
+            is_anonymous: false
+          });
+
+          session.currentIndex = nextIndex;
+          session.currentPollId = nextPoll.poll.id;
+          practicePollMap[nextPoll.poll.id] = practiceUserId;
+
+          sessions[practiceUserId] = session;
+
+          await this.ctx.storage.put("practiceSessions", sessions);
+          await this.ctx.storage.put("practicePollMap", practicePollMap);
+
+          return reply({ ok: true, practiceAdvanced: true });
+        }
+
+        session.status = "finished";
+        session.currentPollId = null;
+        session.unanswered =
+          session.questions.length - recordedAnswers.length;
+
+        const finalScore = (session.correct * 4) - session.wrong;
+
+        sessions[practiceUserId] = session;
+
+        await this.ctx.storage.put("practiceSessions", sessions);
+        await this.ctx.storage.put("practicePollMap", practicePollMap);
+
+        await tg(this.env, "sendMessage", {
+          chat_id: practiceUserId,
+          text:
+            "🏆 PRACTICE COMPLETED!\n\n" +
+            `Quiz: ${session.title}\n` +
+            `Total Questions: ${session.questions.length}\n` +
+            `Correct: ${session.correct}\n` +
+            `Wrong: ${session.wrong}\n` +
+            `Unanswered: ${session.unanswered}\n` +
+            `Final Score: ${finalScore}\n\n` +
+            "Marking: +4 for correct, -1 for wrong."
+        });
+
+        return reply({ ok: true, practiceCompleted: true });
+      }
+
       const state = await this.getState();
 
       if (!state || state.status !== "running" ||
