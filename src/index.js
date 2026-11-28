@@ -395,7 +395,48 @@ export class QuizEngine extends DurableObject {
         startAt: new Date(startAt).toISOString()
       });
     }
+     
+    if (url.pathname === "/message" && request.method === "POST") {
+      const message = await request.json();
+      const chatId = message.chat?.id;
+      const command = (message.text || "").trim();
 
+      if (!chatId || !command) {
+        return reply({ ok: true, ignored: true });
+      }
+
+      if (command === "/start") {
+        await tg(this.env, "sendMessage", {
+          chat_id: chatId,
+          text:
+            "👋 Welcome to JRF WALLAH Practice Mode!\n\n" +
+            "यहाँ आप पूरी हो चुकी quizzes को दोबारा attempt कर सकेंगे।\n\n" +
+            "📚 Available quizzes देखने के लिए /practice भेजें।"
+        });
+      }
+
+      if (command === "/practice") {
+        const quizzes =
+          (await this.ctx.storage.get("completedQuizzes")) || [];
+
+        const text = quizzes.length
+          ? "📚 Completed Quizzes:\n\n" +
+            quizzes.map((q, i) =>
+              `${i + 1}. ${q.title || "JRF WALLAH Quiz"}`
+            ).join("\n") +
+            "\n\nQuiz चुनने के लिए /practice 1, /practice 2 आदि भेजें।"
+          : "अभी कोई completed quiz archive नहीं है। Quiz पूरी होने के बाद यहाँ दिखाई देगी।";
+
+        await tg(this.env, "sendMessage", {
+          chat_id: chatId,
+          text
+        });
+      }
+
+      return reply({ ok: true });
+    }
+
+    
     if (url.pathname === "/answer" && request.method === "POST") {
       const answer = await request.json();
       const state = await this.getState();
