@@ -524,10 +524,25 @@ export class QuizEngine extends DurableObject {
           return;
         }
 
-        state.status = "finished";
-        await this.putState(state);
-        await this.ctx.storage.deleteAlarm();
-        await this.publishLeaderboard(state);
+        const completedQuizzes =
+  (await this.ctx.storage.get("completedQuizzes")) || [];
+
+completedQuizzes.unshift({
+  id: String(Date.now()),
+  title: state.title || "Completed Quiz",
+  questions: state.questions,
+  finishedAt: new Date().toISOString()
+});
+
+await this.ctx.storage.put(
+  "completedQuizzes",
+  completedQuizzes.slice(0, 20)
+);
+
+state.status = "finished";
+await this.putState(state);
+await this.ctx.storage.deleteAlarm();
+await this.publishLeaderboard(state);
       }
         } catch (error) {
       console.error("Quiz alarm error:", error.message);
