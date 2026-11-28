@@ -410,8 +410,8 @@ export class QuizEngine extends DurableObject {
           chat_id: chatId,
           text:
             "👋 Welcome to JRF WALLAH Practice Mode!\n\n" +
-            "यहाँ आप पूरी हो चुकी quizzes को दोबारा attempt कर सकेंगे।\n\n" +
-            "📚 Available quizzes देखने के लिए /practice भेजें।"
+"You can attempt completed quizzes here at any time.\n\n" +
+"📚 Send /practice to view available quizzes."
         });
       }
       
@@ -569,8 +569,8 @@ export class QuizEngine extends DurableObject {
             quizzes.map((q, i) =>
               `${i + 1}. ${q.title || "JRF WALLAH Quiz"}`
             ).join("\n") +
-            "\n\nQuiz चुनने के लिए /practice 1, /practice 2 आदि भेजें।"
-          : "अभी कोई completed quiz archive नहीं है। Quiz पूरी होने के बाद यहाँ दिखाई देगी।";
+            "\n\nTo select a quiz, send /practice 1, /practice 2, etc."
+          : "No completed quizzes are available yet. Completed quizzes will appear here."
 
         await tg(this.env, "sendMessage", {
           chat_id: chatId,
