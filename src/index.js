@@ -480,6 +480,85 @@ export class QuizEngine extends DurableObject {
 
         return reply({ ok: true, practiceStarted: true });
       }
+      
+      if (command === "/next") {
+        if (message.chat?.type !== "private" || !message.from?.id) {
+          return reply({ ok: true, ignored: true });
+        }
+
+        const userId = String(message.from.id);
+        const sessions =
+          (await this.ctx.storage.get("practiceSessions")) || {};
+        const session = sessions[userId];
+
+        if (!session || session.status !== "running") {
+          await tg(this.env, "sendMessage", {
+            chat_id: chatId,
+            text: "You do not have an active practice quiz."
+          });
+          return reply({ ok: true });
+        }
+
+        const practicePollMap =
+          (await this.ctx.storage.get("practicePollMap")) || {};
+
+        if (session.currentPollId) {
+          delete practicePollMap[session.currentPollId];
+        }
+
+        session.unanswered = (session.unanswered || 0) + 1;
+
+        const nextIndex = session.currentIndex + 1;
+
+        if (nextIndex < session.questions.length) {
+          const nextQuestion = session.questions[nextIndex];
+
+          const nextPoll = await tg(this.env, "sendPoll", {
+            chat_id: chatId,
+            question: nextQuestion.question,
+            options: nextQuestion.options.map(text => ({ text })),
+            type: "quiz",
+            correct_option_id: nextQuestion.answer,
+            is_anonymous: false
+          });
+
+          session.currentIndex = nextIndex;
+          session.currentPollId = nextPoll.poll.id;
+          practicePollMap[nextPoll.poll.id] = userId;
+
+          sessions[userId] = session;
+
+          await this.ctx.storage.put("practiceSessions", sessions);
+          await this.ctx.storage.put("practicePollMap", practicePollMap);
+
+          return reply({ ok: true, practiceSkipped: true });
+        }
+
+        session.status = "finished";
+        session.currentPollId = null;
+
+        const finalScore = (session.correct * 4) - session.wrong;
+
+        sessions[userId] = session;
+
+        await this.ctx.storage.put("practiceSessions", sessions);
+        await this.ctx.storage.put("practicePollMap", practicePollMap);
+
+        await tg(this.env, "sendMessage", {
+          chat_id: chatId,
+          text:
+            "PRACTICE COMPLETED!\n\n" +
+            `Quiz: ${session.title}\n` +
+            `Total Questions: ${session.questions.length}\n` +
+            `Correct: ${session.correct}\n` +
+            `Wrong: ${session.wrong}\n` +
+            `Unanswered: ${session.unanswered}\n` +
+            `Final Score: ${finalScore}\n\n` +
+            "Marking: +4 for correct, -1 for wrong."
+        });
+
+        return reply({ ok: true, practiceCompleted: true });
+      }
 
       if (command === "/practice") {
         const quizzes =
