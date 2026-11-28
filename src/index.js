@@ -520,7 +520,7 @@ export class QuizEngine extends DurableObject {
 
           const nextPoll = await tg(this.env, "sendPoll", {
             chat_id: chatId,
-            question: nextQuestion.question,
+            question: `📚 ${session.title}\nQ${nextIndex + 1}/${session.questions.length}\n\n${nextQuestion.question}`,
             options: nextQuestion.options.map(text => ({ text })),
             type: "quiz",
             correct_option_id: nextQuestion.answer,
