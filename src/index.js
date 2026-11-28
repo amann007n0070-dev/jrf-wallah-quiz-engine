@@ -172,14 +172,18 @@ export default {
     }, { status: 500 });
   }
 }
-           if (path === "/admin/webhook-info" && request.method === "GET") {
+           
+      if (path === "/admin/webhook-info" && request.method === "GET") {
         const result = await tg(env, "getWebhookInfo", {});
         return reply({
           ok: true,
           webhookUrl: result.url,
-          pendingUpdates: result.pending_update_count
+          pendingUpdates: result.pending_update_count,
+          lastErrorMessage: result.last_error_message || null,
+          lastErrorDate: result.last_error_date || null
         });
       }
+
 
       if (path === "/admin/restore-production-webhook" && request.method === "POST") {
         const result = await tg(env, "setWebhook", {
