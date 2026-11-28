@@ -404,7 +404,12 @@ export class QuizEngine extends DurableObject {
       if (!chatId || !command) {
         return reply({ ok: true, ignored: true });
       }
-
+            if (
+        message.chat?.type !== "private" &&
+        (command === "/start" || command === "/practice")
+      ) {
+        return reply({ ok: true, ignored: true });
+      }
       if (command === "/start") {
         await tg(this.env, "sendMessage", {
           chat_id: chatId,
