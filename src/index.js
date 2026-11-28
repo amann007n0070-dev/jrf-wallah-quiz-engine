@@ -83,7 +83,7 @@ export default {
         const result = await tg(env, "setWebhook", {
           url: `${url.origin}/telegram-webhook`,
           secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-          allowed_updates: ["poll_answer"],
+          allowed_updates: ["poll_answer", "message"],
           drop_pending_updates: false
         });
         return reply({ ok: true, webhook: result });
@@ -185,7 +185,7 @@ export default {
         const result = await tg(env, "setWebhook", {
           url: "https://jrf-wallah-telegram.amann007n0070.workers.dev/",
           secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-          allowed_updates: ["poll_answer"],
+          allowed_updates: ["poll_answer", "message"],
           drop_pending_updates: false
         });
 
